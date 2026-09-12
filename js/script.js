@@ -10,9 +10,9 @@ if (menuBtn) {
 // ===== Home Page Stats =====
 let totalItems = document.getElementById("totalItems");
 if (totalItems) {
-    document.getElementById("totalItems").textContent = 0;
-    document.getElementById("availableItems").textContent = 0;
-    document.getElementById("claimedItems").textContent = 0;
+    document.getElementById("totalItems").textContent = 100;
+    document.getElementById("availableItems").textContent = 100;
+    document.getElementById("claimedItems").textContent = 100;
 }
 // ===== Student / Admin Toggle (Login & Register pages) =====
 let studentBtn = document.getElementById("studentBtn");
