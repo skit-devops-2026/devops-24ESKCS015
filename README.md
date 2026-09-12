@@ -1,7 +1,7 @@
 #ReClaim
 
-> Replace every angle-bracket placeholder below. The hygiene check in CI will
-> fail until you do.
+Replace every angle-bracket placeholder below. The hygiene check in CI will
+fail until you do.
 
 ## Author
 
@@ -15,9 +15,9 @@ ReClaim is a centralized digital platform that helps individuals report missing 
 
 ## Tech stack
 
-- Frontend: <e.g. html ,css,javascript>
-- Backend: <e.g. Node.js >
-- Database: <e.g. MongoDB>
+- Frontend:html ,css,javascript
+- Backend: Node.js
+- Database:MongoDB
 
 ## Running locally
 
@@ -28,7 +28,7 @@ make run
 
 ## Live URL
 
-<Add once M5 is done. Until then, leave as is.>
+ once M5 is done. Until then, leave as is.
 
 ## Health endpoint
 
