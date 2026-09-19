@@ -1,27 +1,23 @@
-// ===== Placeholder Data (will come from backend later) =====
-let pendingItems = [
-    { id: 1, name: "Red Backpack", reportedBy: "Aarav Sharma", location: "Main Gate", date: "2026-09-01" },
-    { id: 2, name: "Wired Earphones", reportedBy: "Simran Kaur", location: "Canteen", date: "2026-09-02" },
-    { id: 3, name: "Physics Notebook", reportedBy: "Rohan Mehta", location: "Room 204", date: "2026-09-03" },
-];
+// ===== Only logged-in admins can see this page =====
+let currentAdmin = requireRole("admin");
 
-let approvedItems = [
-    { id: 4, name: "Grey Backpack", location: "Main Gate", date: "2026-08-27" },
-    { id: 5, name: "Scientific Calculator", location: "Exam Hall B", date: "2026-08-26" },
-    { id: 6, name: "Silver Wristwatch", location: "Sports Ground", date: "2026-08-24" },
-];
+if (currentAdmin) {
+    document.getElementById("welcomeText").textContent = "Admin: " + currentAdmin.name + " 👋";
+}
 
-let claimRequests = [
-    { id: 1, item: "USB Drive (16GB)", claimant: "Aarav Sharma", date: "2026-08-29" },
-    { id: 2, item: "ID Card Holder", claimant: "Neha Gupta", date: "2026-08-30" },
-];
+let logoutBtn = document.getElementById("logoutBtn");
+if (logoutBtn) {
+    logoutBtn.onclick = function (event) {
+        event.preventDefault();
+        logout();
+    };
+}
 
-const registeredUsers = [
-    { name: "Aarav Sharma", role: "Student", email: "aarav.sharma@college.edu", joined: "2026-07-10" },
-    { name: "Simran Kaur", role: "Student", email: "simran.kaur@college.edu", joined: "2026-07-15" },
-    { name: "Rohan Mehta", role: "Student", email: "rohan.mehta@college.edu", joined: "2026-07-18" },
-    { name: "Priya Verma", role: "Admin", email: "priya.verma@college.edu", joined: "2026-06-01" },
-];
+// Data loaded from the backend
+let pendingItems = [];
+let approvedItems = [];
+let claimRequests = [];
+let registeredUsers = [];
 
 // ===== Tab Switching =====
 function showAdminTab(tabName) {
@@ -44,15 +40,17 @@ function showAdminTab(tabName) {
     }
 }
 
-// ===== Render Overview =====
-function renderAdminOverview() {
-    let statPending = document.getElementById("statPending");
-    if (!statPending) return;
+function formatDate(dateString) {
+    let d = new Date(dateString);
+    return d.toLocaleDateString();
+}
 
-    document.getElementById("statPending").textContent = pendingItems.length;
-    document.getElementById("statApprovedTotal").textContent = approvedItems.length;
-    document.getElementById("statClaimRequests").textContent = claimRequests.length;
-    document.getElementById("statUsers").textContent = registeredUsers.length;
+// ===== Render Overview =====
+function renderAdminOverview(stats) {
+    document.getElementById("statPending").textContent = stats.pendingReports;
+    document.getElementById("statApprovedTotal").textContent = stats.availableItems + stats.claimedItems;
+    document.getElementById("statClaimRequests").textContent = stats.pendingClaims;
+    document.getElementById("statUsers").textContent = stats.totalUsers;
 
     let activityList = document.getElementById("adminRecentActivity");
     let html = "";
@@ -60,7 +58,7 @@ function renderAdminOverview() {
     pendingItems.slice(0, 2).forEach(item => {
         html += `
             <div class="activity-row">
-                <span><strong>${item.reportedBy}</strong> reported "${item.name}"</span>
+                <span><strong>${item.reportedBy ? item.reportedBy.name : "A student"}</strong> reported "${item.itemName}"</span>
                 <span class="badge badge-pending">Needs Review</span>
             </div>`;
     });
@@ -68,7 +66,7 @@ function renderAdminOverview() {
     claimRequests.slice(0, 2).forEach(claim => {
         html += `
             <div class="activity-row">
-                <span><strong>${claim.claimant}</strong> requested to claim "${claim.item}"</span>
+                <span><strong>${claim.student ? claim.student.name : "A student"}</strong> requested to claim "${claim.item ? claim.item.itemName : "an item"}"</span>
                 <span class="badge badge-pending">Needs Verification</span>
             </div>`;
     });
@@ -79,22 +77,23 @@ function renderAdminOverview() {
 // ===== Render Pending Items (with Approve / Reject) =====
 function renderPendingItems() {
     let list = document.getElementById("pendingItemsList");
-    if (!list) return;
 
     let html = "";
     pendingItems.forEach(item => {
         html += `
             <div class="dash-card">
+                <img class="item-image-preview" src="${imageUrl(item.image)}" alt="${item.itemName}">
                 <div class="dash-card-top">
-                    <h3>${item.name}</h3>
+                    <h3>${item.itemName}</h3>
                     <span class="badge badge-pending">Pending</span>
                 </div>
-                <p>👤 Reported by ${item.reportedBy}</p>
-                <p>📍 ${item.location}</p>
-                <p>📅 ${item.date}</p>
+                <p>👤 Reported by ${item.reportedBy ? item.reportedBy.name : "Unknown"}</p>
+                <p>📍 ${item.locationFound}</p>
+                <p>📅 ${formatDate(item.dateFound)}</p>
+                <p>📝 ${item.description}</p>
                 <div class="dash-card-actions">
-                    <button class="btn" onclick="approveItem(${item.id})">Approve</button>
-                    <button class="btn outline" onclick="rejectItem(${item.id})">Reject</button>
+                    <button class="btn" onclick="approveItem('${item._id}')">Approve (Item Received)</button>
+                    <button class="btn outline" onclick="rejectItem('${item._id}')">Reject</button>
                 </div>
             </div>`;
     });
@@ -105,18 +104,20 @@ function renderPendingItems() {
 // ===== Render Approved Items =====
 function renderApprovedItems() {
     let list = document.getElementById("approvedItemsList");
-    if (!list) return;
 
     let html = "";
     approvedItems.forEach(item => {
         html += `
             <div class="dash-card">
+                <img class="item-image-preview" src="${imageUrl(item.image)}" alt="${item.itemName}">
                 <div class="dash-card-top">
-                    <h3>${item.name}</h3>
-                    <span class="badge badge-approved">Approved</span>
+                    <h3>${item.itemName}</h3>
+                    <span class="badge ${item.status === 'claimed' ? 'badge-claimed' : 'badge-approved'}">
+                        ${item.status === 'claimed' ? 'Claimed' : 'Available'}
+                    </span>
                 </div>
-                <p>📍 ${item.location}</p>
-                <p>📅 ${item.date}</p>
+                <p>📍 ${item.locationFound}</p>
+                <p>📅 ${formatDate(item.dateFound)}</p>
             </div>`;
     });
 
@@ -126,21 +127,21 @@ function renderApprovedItems() {
 // ===== Render Claim Requests (with Approve / Reject) =====
 function renderClaimRequests() {
     let list = document.getElementById("claimRequestsList");
-    if (!list) return;
 
     let html = "";
     claimRequests.forEach(claim => {
         html += `
             <div class="dash-card">
                 <div class="dash-card-top">
-                    <h3>${claim.item}</h3>
+                    <h3>${claim.item ? claim.item.itemName : "Item"}</h3>
                     <span class="badge badge-pending">Pending</span>
                 </div>
-                <p>👤 Claimed by ${claim.claimant}</p>
-                <p>📅 Requested on ${claim.date}</p>
+                <p>👤 Claimed by ${claim.student ? claim.student.name : "Unknown"}</p>
+                <p>📅 Requested on ${formatDate(claim.createdAt)}</p>
+                <p>📝 "${claim.claimDetails}"</p>
                 <div class="dash-card-actions">
-                    <button class="btn" onclick="approveClaim(${claim.id})">Approve</button>
-                    <button class="btn outline" onclick="rejectClaim(${claim.id})">Reject</button>
+                    <button class="btn" onclick="approveClaim('${claim._id}')">Approve</button>
+                    <button class="btn outline" onclick="rejectClaim('${claim._id}')">Reject</button>
                 </div>
             </div>`;
     });
@@ -151,72 +152,94 @@ function renderClaimRequests() {
 // ===== Render Registered Users Table =====
 function renderUsersTable() {
     let tbody = document.getElementById("usersTableBody");
-    if (!tbody) return;
 
     let html = "";
     registeredUsers.forEach(user => {
         html += `
             <tr>
                 <td>${user.name}</td>
-                <td><span class="badge">${user.role}</span></td>
+                <td><span class="badge">${user.role === "admin" ? "Admin" : "Student"}</span></td>
                 <td>${user.email}</td>
-                <td>${user.joined}</td>
+                <td>${formatDate(user.createdAt)}</td>
             </tr>`;
     });
 
     tbody.innerHTML = html;
 }
 
-// ===== Actions (placeholder until backend exists) =====
+// ===== Actions =====
 function approveItem(id) {
-    let item = pendingItems.find(i => i.id === id);
-    if (!item) return;
-
-    alert(`"${item.name}" approved! (Backend not connected yet)`);
-    pendingItems = pendingItems.filter(i => i.id !== id);
-    approvedItems.push({ id: item.id, name: item.name, location: item.location, date: item.date });
-
-    renderPendingItems();
-    renderApprovedItems();
-    renderAdminOverview();
+    apiRequest("/admin/items/" + id + "/approve", { method: "PUT" })
+        .then(function (data) {
+            alert(data.message);
+            loadAdminData();
+        })
+        .catch(function (error) {
+            alert(error.message);
+        });
 }
 
 function rejectItem(id) {
-    let item = pendingItems.find(i => i.id === id);
-    if (!item) return;
+    if (!confirm("Reject this report? This will remove it permanently.")) return;
 
-    alert(`"${item.name}" rejected. (Backend not connected yet)`);
-    pendingItems = pendingItems.filter(i => i.id !== id);
-
-    renderPendingItems();
-    renderAdminOverview();
+    apiRequest("/admin/items/" + id + "/reject", { method: "PUT" })
+        .then(function (data) {
+            alert(data.message);
+            loadAdminData();
+        })
+        .catch(function (error) {
+            alert(error.message);
+        });
 }
 
 function approveClaim(id) {
-    let claim = claimRequests.find(c => c.id === id);
-    if (!claim) return;
-
-    alert(`Claim for "${claim.item}" approved! (Backend not connected yet)`);
-    claimRequests = claimRequests.filter(c => c.id !== id);
-
-    renderClaimRequests();
-    renderAdminOverview();
+    apiRequest("/admin/claims/" + id + "/approve", { method: "PUT" })
+        .then(function (data) {
+            alert(data.message);
+            loadAdminData();
+        })
+        .catch(function (error) {
+            alert(error.message);
+        });
 }
 
 function rejectClaim(id) {
-    let claim = claimRequests.find(c => c.id === id);
-    if (!claim) return;
+    apiRequest("/admin/claims/" + id + "/reject", { method: "PUT" })
+        .then(function (data) {
+            alert(data.message);
+            loadAdminData();
+        })
+        .catch(function (error) {
+            alert(error.message);
+        });
+}
 
-    alert(`Claim for "${claim.item}" rejected. (Backend not connected yet)`);
-    claimRequests = claimRequests.filter(c => c.id !== id);
+// ===== Load everything from the backend, then render it =====
+function loadAdminData() {
+    Promise.all([
+        apiRequest("/admin/items/pending"),
+        apiRequest("/admin/items/approved"),
+        apiRequest("/admin/claims"),
+        apiRequest("/admin/users"),
+        apiRequest("/admin/stats"),
+    ])
+        .then(function (results) {
+            pendingItems = results[0];
+            approvedItems = results[1];
+            claimRequests = results[2];
+            registeredUsers = results[3];
+            let stats = results[4];
 
-    renderClaimRequests();
-    renderAdminOverview();
+            renderAdminOverview(stats);
+            renderPendingItems();
+            renderApprovedItems();
+            renderClaimRequests();
+            renderUsersTable();
+        })
+        .catch(function (error) {
+            alert("Could not load the admin dashboard: " + error.message);
+        });
 }
 
 // ===== Init =====
-renderAdminOverview();
-renderPendingItems();
-renderApprovedItems();
-renderClaimRequests();
-renderUsersTable();
+loadAdminData();
