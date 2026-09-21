@@ -6,60 +6,59 @@ class TestReClaimProject(unittest.TestCase):
 
     def setUp(self):
         self.root = Path(__file__).resolve().parent.parent
+        self.client = self.root / "client"
+        self.server = self.root / "server"
 
-    def test_home_page_exists(self):
+    def test_client_exists(self):
         self.assertTrue(
-            (self.root / "index.html").exists(),
-            "index.html is missing"
+            self.client.exists(),
+            "client directory is missing"
         )
 
-    def test_login_page_exists(self):
+    def test_client_package_json_exists(self):
         self.assertTrue(
-            (self.root / "login.html").exists(),
-            "login.html is missing"
+            (self.client / "package.json").exists(),
+            "client/package.json is missing"
         )
 
-    def test_register_page_exists(self):
+    def test_client_package_lock_exists(self):
         self.assertTrue(
-            (self.root / "register.html").exists(),
-            "register.html is missing"
+            (self.client / "package-lock.json").exists(),
+            "client/package-lock.json is missing"
         )
 
-    def test_found_items_page_exists(self):
+    def test_server_exists(self):
         self.assertTrue(
-            (self.root / "found-items.html").exists(),
-            "found-items.html is missing"
+            self.server.exists(),
+            "server directory is missing"
         )
 
-    def test_html_pages_have_html_tag(self):
-        pages = [
-            "index.html",
-            "login.html",
-            "register.html",
-            "found-items.html"
-        ]
-
-        for page in pages:
-            content = (self.root / page).read_text(
-                encoding="utf-8"
-            ).lower()
-
-            self.assertIn(
-                "<html",
-                content,
-                f"{page} does not contain an HTML tag"
-            )
-
-    def test_css_folder_exists(self):
+    def test_server_package_json_exists(self):
         self.assertTrue(
-            (self.root / "css").exists(),
-            "CSS folder is missing"
+            (self.server / "package.json").exists(),
+            "server/package.json is missing"
         )
 
-    def test_js_folder_exists(self):
-        self.assertTrue(
-            (self.root / "js").exists(),
-            "JavaScript folder is missing"
+    def test_react_dependency_exists(self):
+        package_json = (self.client / "package.json").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn(
+            '"react"',
+            package_json,
+            "React dependency is missing"
+        )
+
+    def test_vite_build_script_exists(self):
+        package_json = (self.client / "package.json").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn(
+            '"build": "vite build"',
+            package_json,
+            "Vite build script is missing"
         )
 
 

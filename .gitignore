@@ -61,3 +61,7 @@ desktop.ini
 # ===== Build/misc =====
 *.tmp
 *.temp
+node_modules/
+.env
+dist/
+build/
