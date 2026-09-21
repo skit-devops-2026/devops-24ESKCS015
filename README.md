@@ -16,7 +16,7 @@ help students to get there lost items back
 
 ## Tech stack
 
-- Frontend:html ,css,javascript
+- Frontend:html,React,css,javascript
 - Backend: Node.js
 - Database:MongoDB
 
