@@ -1,7 +1,7 @@
 
 // Change this if your backend runs on a different address
-export const API_BASE = "http://localhost:5000/api";
-export const UPLOADS_BASE = "http://localhost:5000/uploads";
+export const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api";
+export const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE || "http://localhost:5000/uploads";
 
 // Turns a stored image filename into a full URL the browser can load
 export function imageUrl(fileName) {

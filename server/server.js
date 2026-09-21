@@ -48,3 +48,10 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`ReClaim server running on http://localhost:${PORT}`);
 });
+// Top-level health check — used by deployment/monitoring, reports the live commit
+app.get("/health", (req, res) => {
+    res.json({
+        status: "ok",
+        commit: process.env.GIT_COMMIT_SHA || "unknown",
+    });
+});
