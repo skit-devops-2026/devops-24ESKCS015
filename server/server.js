@@ -1,3 +1,5 @@
+// This is the starting point of our backend server.
+
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -16,39 +18,25 @@ const app = express();
 connectDB();
 
 // ===== Middleware =====
-app.use(cors());
-app.use(express.json());
+app.use(cors()); // allows our frontend (running on a different port) to call this API
+app.use(express.json()); // lets us read JSON data sent in requests
 
 // Make the "uploads" folder public so item images can be viewed in the browser
+// e.g. http://localhost:5000/uploads/item_12345.jpg
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// ===== API Routes =====
+// ===== Routes =====
 app.use("/api/auth", authRoutes);
 app.use("/api/items", itemRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/claims", claimRoutes);
 
+// Simple route to check the server is alive
 app.get("/api/health", (req, res) => {
     res.json({ message: "ReClaim server is running" });
 });
 
-app.get("/health", (req, res) => {
-    res.json({
-        status: "ok",
-        commit: process.env.GIT_COMMIT_SHA || "unknown",
-    });
-});
-
-// ===== Serve the built React frontend =====
-const clientBuildPath = path.join(__dirname, "../client/dist");
-app.use(express.static(clientBuildPath));
-
-// Any non-API, non-upload route falls through to the React app (client-side routing)
-app.get(/^\/(?!api|uploads).*/, (req, res) => {
-    res.sendFile(path.join(clientBuildPath, "index.html"));
-});
-
-// ===== Error handler for file upload errors =====
+// ===== Error handler for file upload errors (e.g. wrong image type) =====
 app.use((error, req, res, next) => {
     if (error) {
         return res.status(400).json({ message: error.message });
