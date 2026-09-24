@@ -52,7 +52,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.get("/health", (req, res) => {
     res.json({
         status: "ok",
-        commit: process.env.GIT_COMMIT_SHA || "unknown",
+        commit: process.env.RENDER_GIT_COMMIT || process.env.GIT_COMMIT_SHA || "unknown",
     });
 });
 
