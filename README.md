@@ -28,7 +28,9 @@ make run
 ```
 ## Live URL
 
- once M5 is done. Until then, leave as is.
+Frontend: https://reclaim-inxr.onrender.com
+Backend health: https://reclaim-backend-q8iq.onrender.com/health
+Backend metrics: https://reclaim-backend-q8iq.onrender.com/metrics
 
 ## Health endpoint
 

@@ -7,12 +7,35 @@ const path = require("path");
 
 const connectDB = require("./config/db");
 
+const app = express();
+
+const client = require("prom-client");
+const register = new client.Registry();
+client.collectDefaultMetrics({ register });
+
+const httpRequestCounter = new client.Counter({
+    name: "http_requests_total",
+    help: "Total number of HTTP requests",
+    labelNames: ["method", "route", "status"],
+});
+register.registerMetric(httpRequestCounter);
+
+app.use((req, res, next) => {
+    res.on("finish", () => {
+        httpRequestCounter.inc({ method: req.method, route: req.path, status: res.statusCode });
+    });
+    next();
+});
+
+app.get("/metrics", async (req, res) => {
+    res.set("Content-Type", register.contentType);
+    res.end(await register.metrics());
+});
+
 const authRoutes = require("./routes/authRoutes");
 const itemRoutes = require("./routes/itemRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const claimRoutes = require("./routes/claimRoutes");
-
-const app = express();
 
 // Connect to MongoDB
 connectDB();
@@ -24,6 +47,14 @@ app.use(express.json()); // lets us read JSON data sent in requests
 // Make the "uploads" folder public so item images can be viewed in the browser
 // e.g. http://localhost:5000/uploads/item_12345.jpg
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// Top-level health check — used by deployment/monitoring, reports the live commit
+app.get("/health", (req, res) => {
+    res.json({
+        status: "ok",
+        commit: process.env.GIT_COMMIT_SHA || "unknown",
+    });
+});
 
 // ===== Routes =====
 app.use("/api/auth", authRoutes);
