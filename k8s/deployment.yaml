@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reclaim-server
+  labels:
+    app: reclaim-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reclaim-server
+  template:
+    metadata:
+      labels:
+        app: reclaim-server
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: reclaim-server
+          image: ghcr.io/skit-devops-2026/devops-24eskcs015-server:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+          env:
+            - name: PORT
+              value: "5000"
+            - name: MONGODB_URI
+              value: "mongodb://mongo:27017/reclaim"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 20
